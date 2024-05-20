@@ -10,7 +10,7 @@ The **i18n Peek** extension is designed to streamline the process of handling in
 
 ## Example 
 
-![i18n Peek Example](https://raw.githubusercontent.com/RockyCott/i18n-peek/master/assets/resultado.jpg)
+![i18n Peek Example](https://raw.githubusercontent.com/RockyCott/i18n-peek/master/assets/resultado.png)
 
 ## Usage
 
