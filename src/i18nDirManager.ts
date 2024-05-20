@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import axios from "axios";
 import * as vscode from "vscode";
-import { CONFIG_REMOTE_FILE, I18N_HELPER_DIR } from "./i18nRemoteConfig";
+import { CONFIG_REMOTE_FILE, I18N_PEEK_DIR } from "./i18nRemoteConfig";
 import { promisify } from "util";
 import { EXTENSION_NAME, setNodeTLSRejectUnauthorizedTo } from "./extension";
 import * as jsonc from "jsonc-parser";
@@ -46,7 +46,7 @@ export async function setLocalCustomI18nDir(): Promise<void> {
 }
 
 export async function setRemoteCustomI18nDir() {
-  const configFilePath = path.join(I18N_HELPER_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   const configContent = await readFile(configFilePath, "utf8");
   const config = jsonc.parse(configContent);
 
@@ -54,7 +54,7 @@ export async function setRemoteCustomI18nDir() {
     config;
   setNodeTLSRejectUnauthorizedTo(ignoreCertificateErrors ? "0" : "1");
   try {
-    const workspaceStorage = path.join(I18N_HELPER_DIR, "i18n");
+    const workspaceStorage = path.join(I18N_PEEK_DIR, "i18n");
     const settingSize = Object.keys(settings).length;
     let count = 0;
     for (const key in settings) {
@@ -129,7 +129,7 @@ function setI18nDir(path: string): void {
 }
 
 export async function remoteI18nDirStartup() {
-  const configFilePath = path.join(I18N_HELPER_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   if (fs.existsSync(configFilePath)) {
     setRemoteCustomI18nDir();
   }

@@ -11,17 +11,17 @@ import {
 } from "./i18nDirManager";
 import {
   CONFIG_REMOTE_FILE,
-  I18N_HELPER_DIR,
+  I18N_PEEK_DIR,
   openConfigFile,
 } from "./i18nRemoteConfig";
 import * as path from "path";
 
-export const EXTENSION_NAME = "I18n Helper";
+export const EXTENSION_NAME = "I18n Peek";
 
 export function activate(context: vscode.ExtensionContext) {
-  // Register the command to set the custom i18n Helper path
+  // Register the command to set the custom i18n Peek path
   context.subscriptions.push(
-    vscode.commands.registerCommand("i18nHelper.setI18nDir", async () => {
+    vscode.commands.registerCommand("i18nPeek.setI18nDir", async () => {
       // preguntar si local o remote
       vscode.window.showQuickPick(["Local", "Remote"]).then((value) => {
         if (value === "Local") {
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register the command to get the current i18n directory
   context.subscriptions.push(
-    vscode.commands.registerCommand("i18nHelper.currentI18nDir", () => {
+    vscode.commands.registerCommand("i18nPeek.currentI18nDir", () => {
       const currentI18nDir = getI18nDir();
       // llevarlo a la carpeta
       vscode.window.showInformationMessage(
@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Watch for configuration file changes
   vscode.workspace.onDidSaveTextDocument(async (document) => {
-    const configFilePath = path.join(I18N_HELPER_DIR, CONFIG_REMOTE_FILE);
+    const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
     if (document.uri.fsPath === configFilePath) {
       await setRemoteCustomI18nDir();
     }

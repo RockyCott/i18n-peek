@@ -1,6 +1,6 @@
-# i18n Helper Extension for Visual Studio Code
+# i18n Peek Extension for Visual Studio Code
 
-The **i18n Helper** extension is designed to streamline the process of handling internationalization (i18n) in projects. By default, the extension reads JSON i18n files located in `src/assets/i18n`. However, developers have the flexibility to change this directory or fetch i18n files from a remote endpoint.
+The **i18n Peek** extension is designed to streamline the process of handling internationalization (i18n) in projects. By default, the extension reads JSON i18n files located in `src/assets/i18n`. However, developers have the flexibility to change this directory or fetch i18n files from a remote endpoint.
 
 ## Features
 
@@ -17,7 +17,7 @@ By default, the extension looks for i18n files in the `src/assets/i18n` director
 ### Setting a Custom i18n Directory
 
 1. Press `Ctrl+Shift+P` to open the Command Palette.
-2. Type and select `i18n helper: Set custom i18n directory`.
+2. Type and select `i18n Peek: Set custom i18n directory`.
 3. Choose between **Local** and **Remote**:
 
 #### Local Directory
@@ -27,7 +27,7 @@ By default, the extension looks for i18n files in the `src/assets/i18n` director
 #### Remote Endpoint
 
 1. After selecting **Remote**, you will be prompted to enter the endpoint URL.
-2. The extension will create a `.i18nHelper` directory in your workspace with two items:
+2. The extension will create a `.i18nPeek` directory in your workspace with two items:
    - `i18nConfig.jsonc`: Configuration file for the remote i18n fetch settings.
    - `i18n/`: Directory where the fetched i18n JSON files will be stored.
 
@@ -97,4 +97,4 @@ The configuration file allows you to define the endpoint, headers, method, and o
 - On startup, the extension checks and fetches the i18n files if remote fetching is configured.
   
 ---
-Thank you for using i18n Helper!
+Thank you for using i18n Peek!

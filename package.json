@@ -14,9 +14,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/RockyCott/i18n-helper.git"
+    "url": "https://github.com/RockyCott/i18n-peek.git"
   },
-  "homepage": "https://github.com/RockyCott/i18n-helper/blob/master/README.md",
+  "homepage": "https://github.com/RockyCott/i18n-peek/blob/master/README.md",
   "license": "LICENSE.txt",
   "categories": [
     "Other"
@@ -38,14 +38,14 @@
     ],
     "commands": [
       {
-        "command": "i18nHelper.setI18nDir",
+        "command": "i18nPeek.setI18nDir",
         "title": "Set custom i18n directory",
-        "category": "i18n Helper"
+        "category": "i18n Peek"
       },
       {
-        "command": "i18nHelper.currentI18nDir",
+        "command": "i18nPeek.currentI18nDir",
         "title": "Current i18n directory",
-        "category": "i18n Helper"
+        "category": "i18n Peek"
       }
     ],
     "menus": {},

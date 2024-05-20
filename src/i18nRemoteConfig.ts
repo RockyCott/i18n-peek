@@ -61,9 +61,9 @@ const CONFIG_REMOTE_TEMPLATE = `
 }
 `;
 
-export const I18N_HELPER_DIR: string = path.join(
+export const I18N_PEEK_DIR: string = path.join(
   vscode.workspace.workspaceFolders![0].uri.fsPath || "",
-  ".i18nHelper"
+  ".i18nPeek"
 );
 
 /**
@@ -72,10 +72,10 @@ export const I18N_HELPER_DIR: string = path.join(
  * @param localDir - Local directory to save the i18n files
  */
 export async function ensureConfigFileExists() {
-  if (!fs.existsSync(I18N_HELPER_DIR)) {
-    fs.mkdirSync(I18N_HELPER_DIR);
+  if (!fs.existsSync(I18N_PEEK_DIR)) {
+    fs.mkdirSync(I18N_PEEK_DIR);
   }
-  const configFilePath = path.join(I18N_HELPER_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   if (!fs.existsSync(configFilePath)) {
     await writeFile(configFilePath, CONFIG_REMOTE_TEMPLATE.trim(), "utf8");
   }
@@ -83,7 +83,7 @@ export async function ensureConfigFileExists() {
 
 export async function openConfigFile() {
   await ensureConfigFileExists();
-  const configFilePath = path.join(I18N_HELPER_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
 
   const document = await vscode.workspace.openTextDocument(configFilePath);
   await vscode.window.showTextDocument(document);
