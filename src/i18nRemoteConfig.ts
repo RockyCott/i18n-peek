@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { promisify } from "util";
+import { extractProjectValueGitlabCI } from "./detect-gitlab-ci";
+import { extractProjectValuePackageJSON } from "./detect-package-json";
 const writeFile = promisify(fs.writeFile);
 export const CONFIG_REMOTE_FILE = "i18n-config.jsonc";
 const CONFIG_REMOTE_TEMPLATE = `
@@ -12,13 +14,19 @@ const CONFIG_REMOTE_TEMPLATE = `
   // HTTP method for the request (GET or POST)
   "method": "GET",
 
+  "params": {
+    "module": "${
+      extractProjectValueGitlabCI() ||
+      extractProjectValuePackageJSON() ||
+      "home"
+    }"
+  },
+
   // Individual settings for each language request
   "settings": {
     "1": {
       // Query parameters to be sent with the request
-      "params": {
-        "module": "home"
-      },
+      "params": {},
 
       // HTTP headers to be sent with the request
       "headers": {
@@ -34,9 +42,7 @@ const CONFIG_REMOTE_TEMPLATE = `
     },
     "2": {
       // Query parameters to be sent with the request
-      "params": {
-        "module": "home"
-      },
+      "params": {},
 
       // HTTP headers to be sent with the request
       "headers": {
@@ -61,6 +67,9 @@ const CONFIG_REMOTE_TEMPLATE = `
 }
 `;
 
+/**
+ * Directory to save the i18n files
+ */
 export const I18N_PEEK_DIR: string = path.join(
   vscode.workspace.workspaceFolders![0].uri.fsPath || "",
   ".i18nPeek"
@@ -81,6 +90,9 @@ export async function ensureConfigFileExists() {
   }
 }
 
+/**
+ * Open the configuration file in the editor
+ */
 export async function openConfigFile() {
   await ensureConfigFileExists();
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);

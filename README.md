@@ -8,6 +8,10 @@ The **i18n Peek** extension is designed to streamline the process of handling in
 - **Custom i18n Directory**: Allows setting a custom directory for i18n files.
 - **Remote i18n Fetching**: Supports fetching i18n files from a remote endpoint and storing them locally.
 
+## Example 
+
+![i18n Peek Example](https://raw.githubusercontent.com/RockyCott/i18n-peek/master/assets/resultado.jpg)
+
 ## Usage
 
 ### Default Behavior
@@ -28,7 +32,7 @@ By default, the extension looks for i18n files in the `src/assets/i18n` director
 
 1. After selecting **Remote**, you will be prompted to enter the endpoint URL.
 2. The extension will create a `.i18nPeek` directory in your workspace with two items:
-   - `i18nConfig.jsonc`: Configuration file for the remote i18n fetch settings.
+   - `i18n-config.jsonc`: Configuration file for the remote i18n fetch settings.
    - `i18n/`: Directory where the fetched i18n JSON files will be stored.
 
 ### Configuration File (`i18nConfig.jsonc`)
@@ -40,54 +44,55 @@ The configuration file allows you to define the endpoint, headers, method, and o
   // URL for fetching i18n data
   "url": "https://example.com/api/i18n",
 
-  // HTTP method for the request (GET or POST)
+  // HTTP method for the request (GET or POST) (default: GET)
   "method": "GET",
 
-  // Individual settings for each language request
-  "settings": {
-    "1": {
-      // Query parameters to be sent with the request
-      "params": {
-        "module": "home"
-      },
+  "params": {
+    "module": "home"
+    },
 
-      // HTTP headers to be sent with the request
+  // Individual settings for each language request (required)
+  "settings": {
+    // min 1 setting required
+    "1": {
+      // Query parameters to be sent with the request (optional)
+      "params": {},
+
+      // HTTP headers to be sent with the request (optional)
       "headers": {
         "Content-Type": "application/json",
         "Next-Accept-Language": "es"
       },
 
-      // Language to fetch with file name
+      // Language to fetch with file name (recommended)
       "lang": "es",
 
-      // Request body
+      // Request body (optional)
       "body": {}
     },
     "2": {
-      // Query parameters to be sent with the request
-      "params": {
-        "module": "home"
-      },
+      // Query parameters to be sent with the request (optional)
+      "params": {},
 
-      // HTTP headers to be sent with the request
+      // HTTP headers to be sent with the request (optional)
       "headers": {
         "Content-Type": "application/json",
         "Next-Accept-Language": "en"
       },
 
-      // Language to fetch with file name
+      // Language to fetch with file name (recommended)
       "lang": "en",
 
-      // Request body
+      // Request body (optional)
       "body": {}
     }
     // Add more settings as needed
   },
   
-  // Path within the response JSON where i18n data is located. Leave empty if the data is at the root level.
+  // Path within the response JSON where i18n data is located. Leave empty if the data is at the root level. (optional)
   "responsePath": "module",
   
-  // Ignore SSL certificate errors (useful for self-signed certificates)
+  // Ignore SSL certificate errors (useful for self-signed certificates) (optional)
   "ignoreCertificateErrors": true
 }
 ```

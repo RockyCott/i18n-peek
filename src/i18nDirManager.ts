@@ -45,20 +45,48 @@ export async function setLocalCustomI18nDir(): Promise<void> {
   }
 }
 
+/**
+ * Fetch and save i18n files from an endpoint
+ */
 export async function setRemoteCustomI18nDir() {
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   const configContent = await readFile(configFilePath, "utf8");
   const config = jsonc.parse(configContent);
+  if (!config) {
+    vscode.window.showErrorMessage(
+      `${EXTENSION_NAME}: Error parsing the configuration file.`
+    );
+    return;
+  }
 
-  const { url, method, settings, responsePath, ignoreCertificateErrors } =
-    config;
+  const {
+    url,
+    method,
+    params,
+    settings,
+    responsePath,
+    ignoreCertificateErrors,
+  } = config;
+  if (!url) {
+    vscode.window.showErrorMessage(
+      `${EXTENSION_NAME}: URL not specified in the configuration file.`
+    );
+    return;
+  }
+
   setNodeTLSRejectUnauthorizedTo(ignoreCertificateErrors ? "0" : "1");
   try {
     const workspaceStorage = path.join(I18N_PEEK_DIR, "i18n");
-    const settingSize = Object.keys(settings).length;
+    const settingSize = Object.keys(settings)?.length || 0;
+    if (!settingSize) {
+      vscode.window.showWarningMessage(
+        `${EXTENSION_NAME}: No i18n settings found in the configuration file.`
+      );
+      return;
+    }
     let count = 0;
     for (const key in settings) {
-      const { headers, params, lang, body } = settings[key];
+      const { headers, params: settingParams, lang, body } = settings[key];
       if (!lang) {
         vscode.window.showInformationMessage(
           `${EXTENSION_NAME}: Language not specified in the configuration file. It's recommended to specify a language for the i18n files.`
@@ -66,9 +94,9 @@ export async function setRemoteCustomI18nDir() {
       }
       const response = await axios({
         url,
-        method,
+        method: method || "GET",
         headers,
-        params,
+        params: { ...params, ...settingParams },
         data: body,
         httpsAgent: new (require("https").Agent)({
           rejectUnauthorized: !ignoreCertificateErrors,
@@ -118,16 +146,27 @@ export async function setRemoteCustomI18nDir() {
   }
 }
 
+/**
+ * Get the current i18n directory path
+ * @returns - The current i18n directory path
+ */
 export function getI18nDir(): string {
   return i18nDir || defaultI18nDir;
 }
 
+/**
+ * Set the custom i18n directory path
+ * @param path - Custom i18n directory path
+ */
 function setI18nDir(path: string): void {
   if (getI18nDir() !== path) {
     i18nDir = path;
   }
 }
 
+/**
+ * Check if the custom i18n directory path is set
+ */
 export async function remoteI18nDirStartup() {
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   if (fs.existsSync(configFilePath)) {
