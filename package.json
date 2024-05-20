@@ -3,6 +3,7 @@
   "displayName": "i18n Helper",
   "description": "A helper for managing i18n in projects",
   "version": "0.0.1",
+  "publisher": "Rockycott",
   "author": {
     "name": "Rockycott"
   },
@@ -16,6 +17,7 @@
     "url": "https://github.com/RockyCott/i18n-helper.git"
   },
   "homepage": "https://github.com/RockyCott/i18n-helper/blob/master/README.md",
+  "license": "LICENSE.txt",
   "categories": [
     "Other"
   ],
