@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { customI18nDir } from "./customI18nDir";
 import { languageIcons } from "./language-icons";
+import { getI18nDir } from "./i18nDirManager";
+import { EXTENSION_NAME } from "./extension";
 
 export function activate(context: vscode.ExtensionContext) {
   // Register the command to set the custom i18n directory
@@ -75,28 +76,31 @@ function validateRuta(ruta: string): boolean {
 async function getTranslations(
   key: string
 ): Promise<{ [key: string]: string } | null> {
-  const i18nDir =
-    customI18nDir ||
-    path.join(vscode.workspace.rootPath || "", "src", "assets", "i18n");
+  const i18nDir = getI18nDir();
   if (!fs.existsSync(i18nDir)) {
-    throw new Error("No se encontró la carpeta de i18n");
+    throw new Error(`${EXTENSION_NAME}: I18n folder not found`);
   }
 
   const files = fs
     .readdirSync(i18nDir)
     .filter((file) => file.endsWith(".json"));
-  const translations: { [key: string]: string } = {};
-
+  let translations: { [key: string]: string } = {};
+  let NoFoundMessages: any = {};
   for (const file of files) {
     const lang = path.basename(file, ".json");
     const filePath = path.join(i18nDir, file);
     const jsonContent = await fs.promises.readFile(filePath, "utf8");
     const jsonData = JSON.parse(jsonContent);
-    const translation =
-      getValueFromJson(jsonData, key) || "@Mensaje i18n no encontrado";
-    translations[lang] = translation;
+    const translation = getValueFromJsonPath(jsonData, key);
+    if (translation === undefined) {
+      NoFoundMessages[lang] = "@ I18n Message not found @";
+    } else {
+      translations[lang] = translation;
+    }
   }
-
+  if (Object.keys(NoFoundMessages).length > 0) {
+    translations = { ...translations, ...NoFoundMessages };
+  }
   return translations;
 }
 
@@ -108,9 +112,9 @@ async function getTranslations(
 function createHoverMessage(translations: {
   [key: string]: string;
 }): vscode.Hover {
-  let hoverMessage = "I18n Helper\n\n";
+  let hoverMessage = `${EXTENSION_NAME}\n\n`;
   if (Object.keys(translations).length === 0) {
-    return new vscode.Hover(hoverMessage + "No se encontraron traducciones.");
+    return new vscode.Hover(hoverMessage + "No translations found.");
   }
   for (const lang in translations) {
     const icon = languageIcons[lang] || "🌍";
@@ -125,7 +129,7 @@ function createHoverMessage(translations: {
  * @param path - Path to the value
  * @returns - The value from the JSON object
  */
-function getValueFromJson(json: any, path: string): any {
+export function getValueFromJsonPath(json: any, path: string): any {
   return path.split(".").reduce((prev, curr) => {
     return prev ? prev[curr] : undefined;
   }, json);
