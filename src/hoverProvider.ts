@@ -4,60 +4,60 @@ import * as path from "path";
 import { languageIcons } from "./language-icons";
 import { getI18nDir } from "./i18nDirManager";
 import { EXTENSION_NAME } from "./extension";
+import { getValueFromJsonPath } from "./json-util";
 
 export function activate(context: vscode.ExtensionContext) {
-  // Register the command to set the custom i18n directory
-  const provider = vscode.languages.registerHoverProvider(
-    { language: "html", scheme: "file" },
-    createHoverProvider()
-  );
 
-  // Register the command to set the custom i18n directory
-  const tsProvider = vscode.languages.registerHoverProvider(
-    { language: "typescript", scheme: "file" },
-    createHoverProvider()
-  );
+  // Create hover providers for HTML and TypeScript files
+  const htmlProvider = createHoverProvider(["html"]);
+  const tsProvider = createHoverProvider(["typescript"]);
 
-  context.subscriptions.push(provider);
+  // Register hover providers
+  context.subscriptions.push(htmlProvider);
+  context.subscriptions.push(tsProvider);
 }
 
 export function deactivate() {}
 
 /**
- * Create a hover provider for HTML and TypeScript.
- * @returns Provider for hover events
+ * Create a hover provider for specified languages.
+ * @param languages - Array of language identifiers.
+ * @returns Provider for hover events.
  */
-function createHoverProvider(): vscode.HoverProvider {
-  return {
-    async provideHover(document, position, token) {
-      const range = document.getWordRangeAtPosition(position, /(['"])(.*?)\1/);
-      if (!range) {
-        return null;
-      }
-
-      const word = document.getText(range);
-      const translationKey = word.split("|")[0].trim().replace(/['"]/g, "");
-      if (!validateRuta(translationKey)) {
-        return null;
-      }
-
-      try {
-        const translations = await getTranslations(translationKey);
-        if (!translations) {
+function createHoverProvider(languages: string[]): vscode.Disposable {
+  return vscode.languages.registerHoverProvider(
+    languages.map(language => ({ language, scheme: "file" })),
+    {
+      async provideHover(document, position, token) {
+        const range = document.getWordRangeAtPosition(position, /(['"])(.*?)\1/);
+        if (!range) {
           return null;
         }
-        return createHoverMessage(translations);
-      } catch {
-        return null;
-      }
-    },
-  };
+
+        const word = document.getText(range);
+        const translationKey = word.split("|")[0].trim().replace(/['"]/g, "");
+        if (!validateRuta(translationKey)) {
+          return null;
+        }
+
+        try {
+          const translations = await getTranslations(translationKey);
+          if (!translations) {
+            return null;
+          }
+          return createHoverMessage(translations);
+        } catch {
+          return null;
+        }
+      },
+    }
+  );
 }
 
 /**
- * Method that validates the ruta field
- * @param ruta - The ruta to validate
- * @returns - True if the ruta is valid, false otherwise
+ * Validate the translation key.
+ * @param ruta - The translation key to validate.
+ * @returns True if the key is valid, false otherwise.
  */
 function validateRuta(ruta: string): boolean {
   if (!ruta) {
@@ -78,30 +78,32 @@ async function getTranslations(
 ): Promise<{ [key: string]: string } | null> {
   const i18nDir = getI18nDir();
   if (!fs.existsSync(i18nDir)) {
-    throw new Error(`${EXTENSION_NAME}: I18n folder not found`);
+    throw new Error(`${EXTENSION_NAME}: I18n folder not found.`);
   }
 
   const files = fs
     .readdirSync(i18nDir)
     .filter((file) => file.endsWith(".json"));
   let translations: { [key: string]: string } = {};
-  let NoFoundMessages: any = {};
+  let noFoundMessages: { [key: string]: string } = {};
+  
   for (const file of files) {
     const lang = path.basename(file, ".json");
     const filePath = path.join(i18nDir, file);
-    const jsonContent = await fs.promises.readFile(filePath, "utf8");
-    const jsonData = JSON.parse(jsonContent);
-    const translation = getValueFromJsonPath(jsonData, key);
-    if (translation === undefined) {
-      NoFoundMessages[lang] = "@ I18n Message not found @";
-    } else {
-      translations[lang] = translation;
+    try {
+      const jsonContent = await fs.promises.readFile(filePath, "utf8");
+      const jsonData = JSON.parse(jsonContent);
+      const translation = getValueFromJsonPath(jsonData, key);
+      if (translation === undefined) {
+        noFoundMessages[lang] = "@ I18n Message not found @";
+      } else {
+        translations[lang] = translation;
+      }
+    } catch (error) {
+      noFoundMessages[lang] = "@ Error reading translation @";
     }
   }
-  if (Object.keys(NoFoundMessages).length > 0) {
-    translations = { ...translations, ...NoFoundMessages };
-  }
-  return translations;
+  return { ...translations, ...noFoundMessages };
 }
 
 /**
@@ -121,16 +123,4 @@ function createHoverMessage(translations: {
     hoverMessage += `${icon} ${lang}: ${translations[lang]}\n\n`;
   }
   return new vscode.Hover(new vscode.MarkdownString(hoverMessage));
-}
-
-/**
- * Function to get the value from a JSON object using a path
- * @param json - JSON object
- * @param path - Path to the value
- * @returns - The value from the JSON object
- */
-export function getValueFromJsonPath(json: any, path: string): any {
-  return path.split(".").reduce((prev, curr) => {
-    return prev ? prev[curr] : undefined;
-  }, json);
 }

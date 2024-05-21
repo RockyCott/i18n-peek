@@ -4,8 +4,11 @@ import * as fs from "fs";
 import { promisify } from "util";
 import { extractProjectValueGitlabCI } from "./detect-gitlab-ci";
 import { extractProjectValuePackageJSON } from "./detect-package-json";
+
 const writeFile = promisify(fs.writeFile);
+
 export const CONFIG_REMOTE_FILE = "i18n-config.jsonc";
+
 const CONFIG_REMOTE_TEMPLATE = `
 {
   // URL for fetching i18n data

@@ -1,22 +1,21 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as path from "path";
 import { EXTENSION_NAME } from "./extension";
 
 /**
- * Check if the gitlab-ci.yml file exists in the root of the project.
- * @returns - True if the gitlab-ci.yml file exists, false otherwise
+ * Check if the package.json file exists in the root of the project.
+ * @returns {boolean} True if the package.json file exists, false otherwise.
  */
 export function checkPackageJsonFile(): boolean {
-  const projectPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-  if (!projectPath) {
+  const packageJsonPath = getPackageJsonPath();
+  if (!packageJsonPath) {
     return false;
   }
 
-  const packageJsonPath = getPackageJsonPath();
-
   if (!fs.existsSync(packageJsonPath)) {
     vscode.window.showErrorMessage(
-      `${EXTENSION_NAME}: No found package.json file in the root of the project.`
+      `${EXTENSION_NAME}: No package.json file found in the root of the project.`
     );
     return false;
   }
@@ -24,17 +23,17 @@ export function checkPackageJsonFile(): boolean {
 }
 
 /**
- * Extract the value of the PROJECT key in the gitlab-ci.yml file.
- * @returns - The value of the PROJECT key in the gitlab-ci.yml file
+ * Extract the value of the "name" key in the package.json file.
+ * @returns {string | null} The value of the "name" key in the package.json file, or null if not found.
  */
 export function extractProjectValuePackageJSON(): string | null {
-  if (checkPackageJsonFile() === false) {
+  const packageJsonPath = getPackageJsonPath();
+  if (!packageJsonPath || !checkPackageJsonFile()) {
     return null;
   }
-  const packageJsonFilePath = getPackageJsonPath();
 
-  const packageJsonContent = fs.readFileSync(packageJsonFilePath, "utf8");
   try {
+    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
     const packageJson = JSON.parse(packageJsonContent);
     return packageJson?.name || null;
   } catch {
@@ -43,9 +42,14 @@ export function extractProjectValuePackageJSON(): string | null {
 }
 
 /**
- * Get the path to the package.json file in the root of the project
- * @returns - The path to the package.json file in the root of the project
+ * Get the path to the package.json file in the root of the project.
+ * @returns {string | null} The path to the package.json file, or null if workspaceFolders is not defined.
  */
-function getPackageJsonPath(): string {
-  return `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/package.json`;
+function getPackageJsonPath(): string | null {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return null;
+  }
+
+  return path.join(workspaceFolder.uri.fsPath, "package.json");
 }

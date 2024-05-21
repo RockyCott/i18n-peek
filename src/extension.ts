@@ -17,51 +17,26 @@ import {
 import * as path from "path";
 import * as fs from "fs";
 import { checkPackageJsonFile } from "./detect-package-json";
+import { searchText } from "./search-text";
 
 export const EXTENSION_NAME = "I18n Peek";
 
 export function activate(context: vscode.ExtensionContext) {
   // Verify the existence of the package.json file in the root of the project
-  if (!checkPackageJsonFile()) {
-    return;
-  }
+  // if (!checkPackageJsonFile()) {
+  //   return;
+  // }
 
-  // Register the command to set the custom i18n Peek path
-  context.subscriptions.push(
-    vscode.commands.registerCommand("i18nPeek.setI18nDir", async () => {
-      // Ask the user if they want to set the custom i18n directory locally or remotely (in the configuration file)
-      vscode.window.showQuickPick(["Local", "Remote"]).then((value) => {
-        if (value === "Local") {
-          setLocalCustomI18nDir();
-        } else {
-          openConfigFile();
-        }
-      });
-    })
-  );
-
-  // Register the command to get the current i18n directory
-  context.subscriptions.push(
-    vscode.commands.registerCommand("i18nPeek.currentI18nDir", () => {
-      const currentI18nDir = getI18nDir();
-      vscode.window.showInformationMessage(
-        `${EXTENSION_NAME}: Current i18n directory is ${currentI18nDir}`
-      );
-    })
-  );
+  // Register commands and event listeners
+  registerCommands(context);
 
   // Watch for configuration file changes
-  vscode.workspace.onDidSaveTextDocument(async (document) => {
-    const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
-    if (document.uri.fsPath === configFilePath) {
-      await setRemoteCustomI18nDir();
-    }
-  });
-
-  remoteI18nDirStartup();
+  watchConfigFileChanges();
 
   // Activate the hover provider
   activateHoverProvider(context);
+
+  remoteI18nDirStartup();
 }
 
 export function deactivate() {
@@ -72,6 +47,65 @@ export function deactivate() {
  * Set the NODE_TLS_REJECT_UNAUTHORIZED environment variable to the given value
  * @param value - Value to set the NODE_TLS_REJECT_UNAUTHORIZED environment variable to (default: "0", accepts "0" or "1")
  */
-export const setNodeTLSRejectUnauthorizedTo = (value: string = "0") => {
+export const setNodeTLSRejectUnauthorizedTo = (value: "0" | "1" = "0") => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = value;
+};
+
+/**
+ * Registers the commands for the extension
+ * @param context - The extension context
+ */
+const registerCommands = (context: vscode.ExtensionContext) => {
+  context.subscriptions.push(
+    vscode.commands.registerCommand("i18nPeek.setI18nDir", setI18nDir),
+    vscode.commands.registerCommand(
+      "i18nPeek.currentI18nDir",
+      showCurrentI18nDir
+    ),
+    vscode.commands.registerCommand("i18nPeek.searchText", searchTextCommand)
+  );
+};
+
+/**
+ * Handler for setting the custom i18n directory
+ */
+const setI18nDir = async () => {
+  // Ask the user if they want to set the custom i18n directory locally or remotely (in the configuration file)
+  const value = await vscode.window.showQuickPick(["Local", "Remote"], {
+    placeHolder: "Select the type of i18n directory",
+  });
+  if (value === "Local") {
+    await setLocalCustomI18nDir();
+  } else if (value === "Remote") {
+    await openConfigFile();
+  }
+};
+
+/**
+ * Shows the current i18n directory
+ */
+const showCurrentI18nDir = () => {
+  const currentI18nDir = getI18nDir();
+  vscode.window.showInformationMessage(
+    `${EXTENSION_NAME}: Current i18n directory is ${currentI18nDir}`
+  );
+};
+
+/**
+ * Watch for changes to the configuration file
+ */
+const watchConfigFileChanges = () => {
+  vscode.workspace.onDidSaveTextDocument(async (document) => {
+    const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
+    if (document.uri.fsPath === configFilePath) {
+      await setRemoteCustomI18nDir();
+    }
+  });
+};
+
+/**
+ * Command handler for searching text
+ */
+const searchTextCommand = () => {
+  searchText();
 };

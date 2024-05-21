@@ -2,7 +2,7 @@
   "name": "i18n-peek",
   "displayName": "i18n Peek",
   "description": "A helper for managing i18n files, providing translation previews directly in the editor.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "Rockycott",
   "author": {
     "name": "Rockycott"
@@ -45,6 +45,11 @@
       {
         "command": "i18nPeek.currentI18nDir",
         "title": "Current i18n directory",
+        "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.searchText",
+        "title": "Search text in i18n files",
         "category": "i18n Peek"
       }
     ],

@@ -1,43 +1,43 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as path from "path";
 
 /**
- * Check if the gitlab-ci.yml file exists in the root of the project.
- * @returns - True if the gitlab-ci.yml file exists, false otherwise
+ * Check if the .gitlab-ci.yml file exists in the root of the project.
+ * @returns {boolean} True if the .gitlab-ci.yml file exists, false otherwise.
  */
 export function checkGitLabCIFile(): boolean {
-  const projectPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-  if (!projectPath) {
-    return false;
-  }
-
   const gitLabCIFilePath = getGitLabCIFilePath();
-
-  return fs.existsSync(gitLabCIFilePath);
+  return gitLabCIFilePath ? fs.existsSync(gitLabCIFilePath) : false;
 }
 
 /**
- * Extract the value of the PROJECT key in the gitlab-ci.yml file.
- * @returns - The value of the PROJECT key in the gitlab-ci.yml file
+ * Extract the value of the PROJECT key in the .gitlab-ci.yml file.
+ * @returns {string | null} The value of the PROJECT key, or null if not found.
  */
 export function extractProjectValueGitlabCI(): string | null {
-  if (checkGitLabCIFile() === false) {
+  const gitLabCIFilePath = getGitLabCIFilePath();
+  if (!gitLabCIFilePath) {
     return null;
   }
-  const gitLabCIFilePath = getGitLabCIFilePath();
-  const gitLabCIContent = fs.readFileSync(gitLabCIFilePath, "utf8");
-
-  const match = gitLabCIContent?.match(/PROJECT:\s*(\w+)/);
-  if (match) {
-    return match[1];
+  try {
+    const gitLabCIContent = fs.readFileSync(gitLabCIFilePath, "utf8");
+    const match = gitLabCIContent.match(/PROJECT:\s*(\w+)/i);
+    return match ? match[1] : null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /**
- * Get the path to the gitlab-ci.yml file in the root of the project
- * @returns - The path to the gitlab-ci.yml file in the root of the project
+ * Get the path to the .gitlab-ci.yml file in the root of the project.
+ * @returns {string | null} The path to the .gitlab-ci.yml file, or null if workspaceFolders is not defined.
  */
-function getGitLabCIFilePath(): string {
-  return `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/.gitlab-ci.yml`;
+function getGitLabCIFilePath(): string | null {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return null;
+  }
+
+  return path.join(workspaceFolder.uri.fsPath, ".gitlab-ci.yml");
 }

@@ -6,9 +6,11 @@ import { CONFIG_REMOTE_FILE, I18N_PEEK_DIR } from "./i18nRemoteConfig";
 import { promisify } from "util";
 import { EXTENSION_NAME, setNodeTLSRejectUnauthorizedTo } from "./extension";
 import * as jsonc from "jsonc-parser";
-import { getValueFromJsonPath } from "./hoverProvider";
+import { getValueFromJsonPath } from "./json-util";
+
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
+
 /**
  * Default i18n directory path
  */
@@ -50,9 +52,11 @@ export async function setLocalCustomI18nDir(): Promise<void> {
  */
 export async function setRemoteCustomI18nDir() {
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
-  const configContent = await readFile(configFilePath, "utf8");
-  const config = jsonc.parse(configContent);
-  if (!config) {
+  let config;
+  try {
+    const configContent = await readFile(configFilePath, "utf8");
+    config = jsonc.parse(configContent);
+  } catch {
     vscode.window.showErrorMessage(
       `${EXTENSION_NAME}: Error parsing the configuration file.`
     );
@@ -67,6 +71,7 @@ export async function setRemoteCustomI18nDir() {
     responsePath,
     ignoreCertificateErrors,
   } = config;
+
   if (!url) {
     vscode.window.showErrorMessage(
       `${EXTENSION_NAME}: URL not specified in the configuration file.`
@@ -75,51 +80,63 @@ export async function setRemoteCustomI18nDir() {
   }
 
   setNodeTLSRejectUnauthorizedTo(ignoreCertificateErrors ? "0" : "1");
+
   try {
     const workspaceStorage = path.join(I18N_PEEK_DIR, "i18n");
     const settingSize = Object.keys(settings)?.length || 0;
+
     if (!settingSize) {
       vscode.window.showWarningMessage(
         `${EXTENSION_NAME}: No i18n settings found in the configuration file.`
       );
       return;
     }
+
     let count = 0;
+
     for (const key in settings) {
       const { headers, params: settingParams, lang, body } = settings[key];
+
       if (!lang) {
         vscode.window.showInformationMessage(
           `${EXTENSION_NAME}: Language not specified in the configuration file. It's recommended to specify a language for the i18n files.`
         );
       }
-      const response = await axios({
-        url,
-        method: method || "GET",
-        headers,
-        params: { ...params, ...settingParams },
-        data: body,
-        httpsAgent: new (require("https").Agent)({
-          rejectUnauthorized: !ignoreCertificateErrors,
-        }),
-      });
-      const i18nData = getValueFromJsonPath(response.data, responsePath);
-      if (!i18nData) {
-        vscode.window.showErrorMessage(
-          `${EXTENSION_NAME}: No I18n data was found at the specified path.`
+      try {
+        const response = await axios({
+          url,
+          method: method || "GET",
+          headers,
+          params: { ...params, ...settingParams },
+          data: body,
+          httpsAgent: new (require("https").Agent)({
+            rejectUnauthorized: !ignoreCertificateErrors,
+          }),
+        });
+        const i18nData = getValueFromJsonPath(
+          response?.data || {},
+          responsePath
         );
-        continue;
+        if (!i18nData) {
+          vscode.window.showErrorMessage(
+            `${EXTENSION_NAME}: No I18n data was found at the specified path.`
+          );
+          continue;
+        }
+        if (!fs.existsSync(workspaceStorage)) {
+          fs.mkdirSync(workspaceStorage, { recursive: true });
+        }
+        const filePath = path.join(
+          workspaceStorage,
+          `${lang || settings[key]}.json`
+        );
+        await writeFile(filePath, JSON.stringify(i18nData, null, 2));
+        count++;
+      } catch (error: any) {
+        vscode.window.showErrorMessage(
+          `${EXTENSION_NAME}: Error fetching i18n file for ${key}: ${error.message}`
+        );
       }
-
-      if (!fs.existsSync(workspaceStorage)) {
-        fs.mkdirSync(workspaceStorage, { recursive: true });
-      }
-
-      const filePath = path.join(
-        workspaceStorage,
-        `${lang || settings[key]}.json`
-      );
-      await writeFile(filePath, JSON.stringify(i18nData, null, 2));
-      count++;
     }
 
     if (settingSize && count && settingSize === count) {
@@ -158,9 +175,9 @@ export function getI18nDir(): string {
  * Set the custom i18n directory path
  * @param path - Custom i18n directory path
  */
-function setI18nDir(path: string): void {
-  if (getI18nDir() !== path) {
-    i18nDir = path;
+function setI18nDir(dirPath: string): void {
+  if (getI18nDir() !== dirPath) {
+    i18nDir = dirPath;
   }
 }
 
@@ -170,6 +187,6 @@ function setI18nDir(path: string): void {
 export async function remoteI18nDirStartup() {
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   if (fs.existsSync(configFilePath)) {
-    setRemoteCustomI18nDir();
+    await setRemoteCustomI18nDir();
   }
 }
