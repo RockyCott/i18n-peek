@@ -71,12 +71,17 @@ const CONFIG_REMOTE_TEMPLATE = `
 `;
 
 /**
+ * Directory to save the vscode configuration files
+ */
+export const VSCODE_DIR: string = path.join(
+  vscode.workspace.workspaceFolders![0].uri.fsPath || "",
+  ".vscode"
+);
+
+/**
  * Directory to save the i18n files
  */
-export const I18N_PEEK_DIR: string = path.join(
-  vscode.workspace.workspaceFolders![0].uri.fsPath || "",
-  ".i18nPeek"
-);
+export const I18N_PEEK_DIR: string = path.join(VSCODE_DIR, ".i18nPeek");
 
 /**
  * Fetch and save i18n files from an endpoint
@@ -84,12 +89,30 @@ export const I18N_PEEK_DIR: string = path.join(
  * @param localDir - Local directory to save the i18n files
  */
 export async function ensureConfigFileExists() {
-  if (!fs.existsSync(I18N_PEEK_DIR)) {
-    fs.mkdirSync(I18N_PEEK_DIR);
-  }
+  await ensureI18nPeekDirExists();
+
   const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
   if (!fs.existsSync(configFilePath)) {
     await writeFile(configFilePath, CONFIG_REMOTE_TEMPLATE.trim(), "utf8");
+  }
+}
+
+/**
+ * Ensure the existence of the .vscode directory
+ */
+export async function ensureVsCodeDirExists() {
+  if (!fs.existsSync(VSCODE_DIR)) {
+    fs.mkdirSync(VSCODE_DIR);
+  }
+}
+
+/**
+ * Ensure the existence of the .i18nPeek directory
+ */
+export async function ensureI18nPeekDirExists() {
+  await ensureVsCodeDirExists();
+  if (!fs.existsSync(I18N_PEEK_DIR)) {
+    fs.mkdirSync(I18N_PEEK_DIR);
   }
 }
 

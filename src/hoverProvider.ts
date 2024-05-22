@@ -7,7 +7,6 @@ import { EXTENSION_NAME } from "./extension";
 import { getValueFromJsonPath } from "./json-util";
 
 export function activate(context: vscode.ExtensionContext) {
-
   // Create hover providers for HTML and TypeScript files
   const htmlProvider = createHoverProvider(["html"]);
   const tsProvider = createHoverProvider(["typescript"]);
@@ -26,10 +25,13 @@ export function deactivate() {}
  */
 function createHoverProvider(languages: string[]): vscode.Disposable {
   return vscode.languages.registerHoverProvider(
-    languages.map(language => ({ language, scheme: "file" })),
+    languages.map((language) => ({ language, scheme: "file" })),
     {
       async provideHover(document, position, token) {
-        const range = document.getWordRangeAtPosition(position, /(['"])(.*?)\1/);
+        const range = document.getWordRangeAtPosition(
+          position,
+          /(['"])(.*?)\1/
+        );
         if (!range) {
           return null;
         }
@@ -86,7 +88,7 @@ async function getTranslations(
     .filter((file) => file.endsWith(".json"));
   let translations: { [key: string]: string } = {};
   let noFoundMessages: { [key: string]: string } = {};
-  
+
   for (const file of files) {
     const lang = path.basename(file, ".json");
     const filePath = path.join(i18nDir, file);

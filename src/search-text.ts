@@ -4,7 +4,7 @@ import * as path from "path";
 import { getI18nDir } from "./i18nDirManager";
 import { flatten } from "./json-util";
 import { normalizeText } from "./text-util";
-import { I18N_PEEK_DIR } from "./i18nRemoteConfig";
+import { I18N_PEEK_DIR, ensureI18nPeekDirExists } from "./i18nRemoteConfig";
 import { EXTENSION_NAME } from "./extension";
 
 export async function searchText() {
@@ -33,9 +33,8 @@ export async function searchText() {
     }
 
     // Create a new json document in .i18nPeek to show the results
-    if (!fs.existsSync(I18N_PEEK_DIR)) {
-      fs.mkdirSync(I18N_PEEK_DIR);
-    }
+    await ensureI18nPeekDirExists();
+
     const filePath = path.join(I18N_PEEK_DIR, "search-results.json");
     fs.writeFileSync(filePath, JSON.stringify(results, null, 2));
 
