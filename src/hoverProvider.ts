@@ -95,9 +95,9 @@ async function getTranslations(
     try {
       const jsonContent = await fs.promises.readFile(filePath, "utf8");
       const jsonData = JSON.parse(jsonContent);
-      const translation = getValueFromJsonPath(jsonData, key);
+      const translation = jsonData[key] || getValueFromJsonPath(jsonData, key);
       if (translation === undefined) {
-        noFoundMessages[lang] = "@ I18n Message not found @";
+        noFoundMessages[lang] = "@ Not found @";
       } else {
         translations[lang] = translation;
       }
@@ -116,13 +116,16 @@ async function getTranslations(
 function createHoverMessage(translations: {
   [key: string]: string;
 }): vscode.Hover {
-  let hoverMessage = `${EXTENSION_NAME}\n\n`;
+  let hoverMessage = `**${EXTENSION_NAME}**\n\n`;
   if (Object.keys(translations).length === 0) {
     return new vscode.Hover(hoverMessage + "No translations found.");
   }
+
+  const icons = ["🌍", "🌐"];
+  let iconIndex = 0;
   for (const lang in translations) {
-    const icon = languageIcons[lang] || "🌍";
-    hoverMessage += `${icon} ${lang}: ${translations[lang]}\n\n`;
+    const icon = iconIndex % 2 === 0 ? icons[0] : icons[1];
+    hoverMessage += `${icon} **${lang}**: ${translations[lang]}\n\n`;
   }
   return new vscode.Hover(new vscode.MarkdownString(hoverMessage));
 }

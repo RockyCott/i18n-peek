@@ -22,9 +22,9 @@ export const EXTENSION_NAME = "I18n Peek";
 
 export function activate(context: vscode.ExtensionContext) {
   // Verify the existence of the package.json file in the root of the project
-  if (!checkPackageJsonFile()) {
-    return;
-  }
+  // if (!checkPackageJsonFile()) {
+  //   return;
+  // }
 
   // Register commands and event listeners
   registerCommands(context);

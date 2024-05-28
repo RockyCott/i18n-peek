@@ -9,6 +9,26 @@ The **i18n Peek** extension is designed to streamline the process of handling in
 - **Remote i18n Fetching**: Supports fetching i18n files from a remote endpoint and storing them locally.
 - **Text Search in i18n Files**: Search for a text string in i18n files and get corresponding translation keys.
 
+## Example JSON Structure (en.json)
+It is recommended to structure your JSON files hierarchically for better organization:
+
+```json
+{
+  "MODULES": {
+    "LIQUIDADOR": {
+      "TITLE_PRINCIPAL_SECTION": "Settlement list",
+    }
+  },
+  "OTHER": {
+    "EXAMPLE": {
+      "KEY": "Value",
+    }
+  },
+  "X": "..."
+}
+
+```
+
 ## Example Hover Translation
 
 ![i18n Peek Example](https://raw.githubusercontent.com/RockyCott/i18n-peek/master/assets/resultado.png)
@@ -127,6 +147,30 @@ The configuration file allows you to define the endpoint, headers, method, and o
 - i18n files are fetched automatically upon modifying the configuration file.
 - On startup, the extension checks and fetches the i18n files if remote fetching is configured.
   
+## Handling i18n Keys with Dots (v0.0.4 and later)
+
+Initially, the extension considered dots in keys as indicating hierarchical structure in JSON files. Now, it supports both hierarchical and flat structures. If a key contains dots, the extension will check for an exact match before treating the dots as path separators.
+
+### Example
+Given the following JSON structure:
+```json
+{
+  "MODULES.MESSAGES.BUTTONS.ACCEPT": "Accept"
+}
+```
+but recommend avoiding this kind of structure to prevent ambiguity and use the following instead:
+```json
+{
+  "MODULES": {
+    "MESSAGES": {
+      "BUTTONS": {
+        "ACCEPT": "Accept"
+      }
+    }
+  }
+}
+```
+
 ---
 
-**Thank you for using i18n Peek!**
+**Thank you for using i18n Peek!** ❤️  
