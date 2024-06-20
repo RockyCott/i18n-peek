@@ -2,7 +2,7 @@
   "name": "i18n-peek",
   "displayName": "i18n Peek",
   "description": "A helper for managing i18n files, providing translation previews directly in the editor.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "Rockycott",
   "author": {
     "name": "Rockycott"
@@ -24,7 +24,8 @@
   "activationEvents": [
     "onLanguage:html",
     "onLanguage:typescript",
-    "onLanguage:typescriptreact"
+    "onLanguage:typescriptreact",
+    "onFileSystem:openFolder"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -51,11 +52,130 @@
         "command": "i18nPeek.searchText",
         "title": "Search text in i18n files",
         "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.setDirFromContext",
+        "title": "Set as i18n directory",
+        "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.openRemoteFile",
+        "title": "Open i18n remote config file",
+        "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.createI18nFiles",
+        "title": "Create language files",
+        "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.selectCustomDirFromGlobalCustomDirs",
+        "title": "Select i18n directory from global directories",
+        "category": "i18n Peek"
+      },
+      {
+        "command": "i18nPeek.removeCustomDirFromGlobalCustomDirs",
+        "title": "Remove i18n directory from global directories",
+        "category": "i18n Peek"
       }
     ],
-    "menus": {},
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "i18nPeek.editor.submenu",
+          "group": "i18nPeek"
+        }
+      ],
+      "i18nPeek.editor.submenu": [
+        {
+          "command": "i18nPeek.currentI18nDir",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.searchText",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.openRemoteFile",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.createI18nFiles",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.selectCustomDirFromGlobalCustomDirs",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.removeCustomDirFromGlobalCustomDirs",
+          "group": "i18nPeek"
+        }
+      ],
+      "i18nPeek.explorer.submenu": [
+        {
+          "command": "i18nPeek.currentI18nDir",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.setDirFromContext",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.createI18nFiles",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.openRemoteFile",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.selectCustomDirFromGlobalCustomDirs",
+          "group": "i18nPeek"
+        },
+        {
+          "command": "i18nPeek.removeCustomDirFromGlobalCustomDirs",
+          "group": "i18nPeek"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "i18nPeek.explorer.submenu",
+          "when": "explorerResourceIsFolder",
+          "group": "i18nPeek"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "i18nPeek.editor.submenu",
+        "label": "I18n Peek"
+      },
+      {
+        "id": "i18nPeek.explorer.submenu",
+        "label": "I18n Peek"
+      }
+    ],
     "snippets": [],
-    "configuration": {}
+    "configuration": {
+      "properties": {
+        "i18nPeek.WorkspaceCustomDir": {
+          "type": "string",
+          "default": "src/assets/i18n",
+          "description": "Custom directory for i18n files"
+        },
+        "i18nPeek.GlobalCustomDir": {
+          "type": "string",
+          "default": "src/assets/i18n",
+          "description": "Global custom directories for i18n files"
+        },
+        "i18nPeek.customConfig": {
+          "type": "string",
+          "default": "local",
+          "description": "Custom config for project"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { getI18nDir } from "./i18nDirManager";
+import { getWorkspaceI18nCustomDir } from "./i18nDirManager";
 import { flatten } from "./json-util";
 import { normalizeText } from "./text-util";
 import { I18N_PEEK_DIR, ensureI18nPeekDirExists } from "./i18nRemoteConfig";
@@ -58,7 +58,7 @@ async function search(text: string): Promise<any | null> {
   }
 
   let finalResults: any = {};
-  const i18nDir = getI18nDir();
+  const i18nDir = getWorkspaceI18nCustomDir();
   const files = fs
     .readdirSync(i18nDir)
     .filter((file) => file.endsWith(".json"));

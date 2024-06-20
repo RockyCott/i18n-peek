@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { languageIcons } from "./language-icons";
-import { getI18nDir } from "./i18nDirManager";
+import { languageCountryIcons } from "./language-icons";
+import { getWorkspaceI18nCustomDir } from "./i18nDirManager";
 import { EXTENSION_NAME } from "./extension";
 import { getValueFromJsonPath } from "./json-util";
 
@@ -38,7 +38,7 @@ function createHoverProvider(languages: string[]): vscode.Disposable {
 
         const word = document.getText(range);
         const translationKey = word.split("|")[0].trim().replace(/['"]/g, "");
-        if (!validateRuta(translationKey)) {
+        if (!validateTranslationKey(translationKey)) {
           return null;
         }
 
@@ -61,7 +61,7 @@ function createHoverProvider(languages: string[]): vscode.Disposable {
  * @param ruta - The translation key to validate.
  * @returns True if the key is valid, false otherwise.
  */
-function validateRuta(ruta: string): boolean {
+function validateTranslationKey(ruta: string): boolean {
   if (!ruta) {
     return false;
   }
@@ -78,7 +78,7 @@ function validateRuta(ruta: string): boolean {
 async function getTranslations(
   key: string
 ): Promise<{ [key: string]: string } | null> {
-  const i18nDir = getI18nDir();
+  const i18nDir = getWorkspaceI18nCustomDir();
   if (!fs.existsSync(i18nDir)) {
     throw new Error(`${EXTENSION_NAME}: I18n folder not found.`);
   }
@@ -86,6 +86,7 @@ async function getTranslations(
   const files = fs
     .readdirSync(i18nDir)
     .filter((file) => file.endsWith(".json"));
+
   let translations: { [key: string]: string } = {};
   let noFoundMessages: { [key: string]: string } = {};
 
@@ -97,12 +98,12 @@ async function getTranslations(
       const jsonData = JSON.parse(jsonContent);
       const translation = jsonData[key] || getValueFromJsonPath(jsonData, key);
       if (translation === undefined) {
-        noFoundMessages[lang] = "@ Not found @";
+        noFoundMessages[lang] = "~ Not found ~";
       } else {
         translations[lang] = translation;
       }
     } catch (error) {
-      noFoundMessages[lang] = "@ Error reading translation @";
+      noFoundMessages[lang] = "~ Error reading translation ~";
     }
   }
   return { ...translations, ...noFoundMessages };
@@ -124,7 +125,11 @@ function createHoverMessage(translations: {
   const icons = ["🌍", "🌐"];
   let iconIndex = 0;
   for (const lang in translations) {
-    const icon = iconIndex % 2 === 0 ? icons[0] : icons[1];
+    let icon = languageCountryIcons[lang?.trim().toLowerCase()];
+    if (!icon) {
+      icon = icons[iconIndex % icons.length];
+      iconIndex++;
+    }
     hoverMessage += `${icon} **${lang}**: ${translations[lang]}\n\n`;
   }
   return new vscode.Hover(new vscode.MarkdownString(hoverMessage));

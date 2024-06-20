@@ -8,6 +8,11 @@ The **i18n Peek** extension is designed to streamline the process of handling in
 - **Custom i18n Directory**: Allows setting a custom directory for i18n files.
 - **Remote i18n Fetching**: Supports fetching i18n files from a remote endpoint and storing them locally.
 - **Text Search in i18n Files**: Search for a text string in i18n files and get corresponding translation keys.
+- **Context Menu Integration**: New commands accessible via right-click on folders or within files.
+- **Set custom i18n directory from context menu**: Sets a custom i18n directory based on the context menu selection.
+- **Create i18n files**: Fetches and creates i18n files from a remote endpoint specified in the configuration.
+- **Select custom i18n directory from global custom directories**: Allows selection of a custom i18n directory from the global custom directories. The global custom directories are stored in the user settings.
+
 
 ## Example JSON Structure (en.json)
 It is recommended to structure your JSON files hierarchically for better organization:
@@ -78,6 +83,12 @@ By default, the extension looks for i18n files in the `src/assets/i18n` director
   "MODULES.MESSAGES.BUTTONS.ACCEPTS": "Accepts",
 }
 ```
+
+## Context Menu Integration
+
+Right-click on a folder or inside a file to access new i18n commands.
+
+![i18n Peek Context Menu Example](https://raw.githubusercontent.com/RockyCott/i18n-peek/master/assets/context-menu.png)
 
 
 

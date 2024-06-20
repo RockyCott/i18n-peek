@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { promisify } from "util";
 import { extractProjectValueGitlabCI } from "./detect-gitlab-ci";
 import { extractProjectValuePackageJSON } from "./detect-package-json";
+import { getRemoteFileConfigPath } from "./i18nDirManager";
 
 const writeFile = promisify(fs.writeFile);
 
@@ -91,7 +92,7 @@ export const I18N_PEEK_DIR: string = path.join(VSCODE_DIR, ".i18nPeek");
 export async function ensureConfigFileExists() {
   await ensureI18nPeekDirExists();
 
-  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = await getRemoteFileConfigPath();
   if (!fs.existsSync(configFilePath)) {
     await writeFile(configFilePath, CONFIG_REMOTE_TEMPLATE.trim(), "utf8");
   }
@@ -120,9 +121,9 @@ export async function ensureI18nPeekDirExists() {
  * Open the configuration file in the editor
  */
 export async function openConfigFile() {
-  await ensureConfigFileExists();
-  const configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
+  const configFilePath = await getRemoteFileConfigPath();
 
   const document = await vscode.workspace.openTextDocument(configFilePath);
   await vscode.window.showTextDocument(document);
 }
+
