@@ -7,6 +7,7 @@ import {
   removeGlobalI18nCustomDir,
   selectGlobalI18nCustomDir,
   setLocalCustomI18nDir,
+  validateI18nDirToRelative,
 } from "./i18nDirManager";
 import { EXTENSION_NAME } from "./extension";
 
@@ -71,12 +72,10 @@ const setI18nDirCommand = async () => {
  * Shows the current i18n directory
  */
 const showCurrentI18nDirCommand = () => {
-  const currentI18nDir = getWorkspaceI18nCustomDir();
-  const workspaceFolder =
-    vscode.workspace.workspaceFolders?.[0].uri.fsPath || "";
-  const relativePath = path.relative(workspaceFolder, currentI18nDir);
+  let currentI18nDir = getWorkspaceI18nCustomDir();
+  currentI18nDir = validateI18nDirToRelative(currentI18nDir);
   vscode.window.showInformationMessage(
-    `${EXTENSION_NAME}: Current i18n directory is ${relativePath}`
+    `${EXTENSION_NAME}: Current i18n directory is ${currentI18nDir}`
   );
 };
 
@@ -91,26 +90,13 @@ const searchTextCommand = () => {
  * Command to set the custom i18n directory from the context menu
  */
 const setDirFromContextCommand = async (uri: vscode.Uri) => {
-  const question = async (dir: string) => {
-    // const result = await vscode.window.showInformationMessage(
-    //   `Set i18n directory to: ${dir}?`,
-    //   "Yes",
-    //   "No"
-    // );
-    // if (result === "Yes") {
-    // }
-    const workspaceFolder =
-      vscode.workspace.workspaceFolders?.[0].uri.fsPath || "";
-    const join = path.join(workspaceFolder, dir);
-    await setLocalCustomI18nDir(join);
-  };
   const i18nDir = uri?.fsPath;
 
   if (i18nDir) {
     const workspaceFolder =
-      vscode.workspace.workspaceFolders?.[0].uri.fsPath || "";
+      vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? "";
     const relativePath = path.relative(workspaceFolder, i18nDir);
-    question(relativePath);
+    setLocalCustomI18nDir(relativePath);
   } else {
     vscode.window.showErrorMessage(
       `${EXTENSION_NAME}: No folder or file selected.`
@@ -182,3 +168,6 @@ export const removeDirFromGlobalDirCommand = async () => {
 export const openConfigFileCommand = async () => {
   openConfigFile();
 };
+
+
+

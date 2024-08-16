@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { languageCountryIcons } from "./language-icons";
-import { getWorkspaceI18nCustomDir } from "./i18nDirManager";
+import { getWorkspaceI18nCustomDir, validateI18nDirToAbsolute } from "./i18nDirManager";
 import { EXTENSION_NAME } from "./extension";
 import { getValueFromJsonPath } from "./json-util";
 
@@ -79,12 +79,13 @@ async function getTranslations(
   key: string
 ): Promise<{ [key: string]: string } | null> {
   const i18nDir = getWorkspaceI18nCustomDir();
-  if (!fs.existsSync(i18nDir)) {
+  const i18nAbsoluteDir = validateI18nDirToAbsolute(i18nDir);
+  if (!fs.existsSync(i18nAbsoluteDir)) {
     throw new Error(`${EXTENSION_NAME}: I18n folder not found.`);
   }
 
   const files = fs
-    .readdirSync(i18nDir)
+    .readdirSync(i18nAbsoluteDir)
     .filter((file) => file.endsWith(".json"));
 
   let translations: { [key: string]: string } = {};
@@ -92,7 +93,7 @@ async function getTranslations(
 
   for (const file of files) {
     const lang = path.basename(file, ".json");
-    const filePath = path.join(i18nDir, file);
+    const filePath = path.join(i18nAbsoluteDir, file);
     try {
       const jsonContent = await fs.promises.readFile(filePath, "utf8");
       const jsonData = JSON.parse(jsonContent);

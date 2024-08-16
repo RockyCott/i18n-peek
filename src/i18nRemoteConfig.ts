@@ -19,11 +19,7 @@ const CONFIG_REMOTE_TEMPLATE = `
   "method": "GET",
 
   "params": {
-    "module": "${
-      extractProjectValueGitlabCI() ||
-      extractProjectValuePackageJSON() ||
-      "home"
-    }"
+    "module": "${getModuleParam()}"
   },
 
   // Individual settings for each language request
@@ -71,6 +67,12 @@ const CONFIG_REMOTE_TEMPLATE = `
 }
 `;
 
+export function getModuleParam() {
+  return (
+    extractProjectValueGitlabCI() || extractProjectValuePackageJSON() || "home"
+  );
+}
+
 /**
  * Directory to save the vscode configuration files
  */
@@ -90,8 +92,6 @@ export const I18N_PEEK_DIR: string = path.join(VSCODE_DIR, ".i18nPeek");
  * @param localDir - Local directory to save the i18n files
  */
 export async function ensureConfigFileExists() {
-  await ensureI18nPeekDirExists();
-
   const configFilePath = await getRemoteFileConfigPath();
   if (!fs.existsSync(configFilePath)) {
     await writeFile(configFilePath, CONFIG_REMOTE_TEMPLATE.trim(), "utf8");
@@ -122,8 +122,7 @@ export async function ensureI18nPeekDirExists() {
  */
 export async function openConfigFile() {
   const configFilePath = await getRemoteFileConfigPath();
-
+  await ensureConfigFileExists();
   const document = await vscode.workspace.openTextDocument(configFilePath);
   await vscode.window.showTextDocument(document);
 }
-

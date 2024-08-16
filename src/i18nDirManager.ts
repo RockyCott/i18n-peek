@@ -5,7 +5,9 @@ import * as vscode from "vscode";
 import {
   CONFIG_REMOTE_FILE,
   I18N_PEEK_DIR,
+  ensureConfigFileExists,
   ensureI18nPeekDirExists,
+  getModuleParam,
   openConfigFile,
 } from "./i18nRemoteConfig";
 import { promisify } from "util";
@@ -36,8 +38,14 @@ interface globalCustomDirDTO {
   remote: any;
 }
 
+interface LastGlobalCustomDirDTO {
+  local: string | null;
+  remote: any;
+}
+
 /**
  * Set the custom i18n directory path
+ * @param dir - Custom i18n directory absolute path
  */
 export async function setLocalCustomI18nDir(dir: string = ""): Promise<void> {
   if (!dir) {
@@ -52,6 +60,7 @@ export async function setLocalCustomI18nDir(dir: string = ""): Promise<void> {
     }
   }
   if (dir) {
+    dir = validateI18nDirToRelative(dir);
     setI18nDir(dir);
   } else {
     vscode.window.showInformationMessage("No directory selected.");
@@ -71,6 +80,7 @@ export async function getRemoteFileConfigPath(): Promise<string> {
  * Fetch and save i18n files from an endpoint
  */
 export async function setRemoteCustomI18nDir() {
+  await ensureConfigFileExists();
   const configFilePath = await getRemoteFileConfigPath();
   let config;
   try {
@@ -78,7 +88,7 @@ export async function setRemoteCustomI18nDir() {
     config = jsonc.parse(configContent);
   } catch {
     vscode.window.showErrorMessage(
-      `${EXTENSION_NAME}: Error parsing the configuration file.`
+      `${EXTENSION_NAME}: Error parsing the configuration file`
     );
     return;
   }
@@ -132,9 +142,6 @@ export async function setRemoteCustomI18nDir() {
           headers,
           params: { ...params, ...settingParams },
           data: body,
-          httpsAgent: new (require("https").Agent)({
-            rejectUnauthorized: !ignoreCertificateErrors,
-          }),
         });
         const i18nData = getValueFromJsonPath(
           response?.data || {},
@@ -165,6 +172,8 @@ export async function setRemoteCustomI18nDir() {
       `${EXTENSION_NAME}: Error fetching i18n files: ${error.message}`
     );
     setNodeTLSRejectUnauthorizedTo("1");
+  } finally {
+    setNodeTLSRejectUnauthorizedTo("1");
   }
 }
 
@@ -181,11 +190,12 @@ function handleFetchResults(
   errorMessages: string[],
   workspaceStorage: string
 ): void {
+  const relativePath = validateI18nDirToRelative(workspaceStorage);
   if (settingSize && count && settingSize === count) {
     vscode.window.showInformationMessage(
       `${EXTENSION_NAME}: i18n files fetched and saved successfully in ${workspaceStorage}.`
     );
-    setI18nDir(workspaceStorage, true);
+    setI18nDir(relativePath, true);
   } else if (settingSize && count && settingSize !== count) {
     vscode.window.showWarningMessage(
       `${EXTENSION_NAME}: Some i18n files were not fetched.`
@@ -193,7 +203,7 @@ function handleFetchResults(
     vscode.window.showErrorMessage(
       `${EXTENSION_NAME}: ${errorMessages.join("")}`
     );
-    setI18nDir(workspaceStorage, true);
+    setI18nDir(relativePath, true);
   } else {
     vscode.window.showWarningMessage(
       `${EXTENSION_NAME}: No i18n files were fetched.`
@@ -206,36 +216,34 @@ function handleFetchResults(
 
 /**
  * Set the custom i18n directory path
- * @param path - Custom i18n directory relative path
+ * @param path - Custom i18n directory absolute path
  */
 async function setI18nDir(
-  dirPath: string,
+  dirRelativePath: string,
   remote: boolean = false
 ): Promise<void> {
-  if (getWorkspaceI18nCustomDir() === dirPath) {
-    return;
-  }
-  // const workspaceFolder =
-  //   vscode.workspace.workspaceFolders?.[0].uri.fsPath || "";
-  //i18nDir = path.join(workspaceFolder, dirPath);
+  const workspaceFolder =
+    vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? "";
+  const dirAbsolutePath = path.join(workspaceFolder, dirRelativePath);
   const validDir =
-    fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory();
+    fs.existsSync(dirAbsolutePath) && fs.lstatSync(dirAbsolutePath).isDirectory();
   if (!validDir) {
     vscode.window.showErrorMessage(
-      `${EXTENSION_NAME}: Invalid directory path: ${dirPath}`
+      `${EXTENSION_NAME}: Invalid directory path: ${dirRelativePath}`
     );
     return;
   }
 
-  vscode.window.showInformationMessage(
-    `${EXTENSION_NAME}: i18n directory set to: ${dirPath}`
-  );
-
   saveCustomConfig(remote ? "remote" : "local");
+  saveWorkspaceI18nCustomDir(dirRelativePath);
 
-  saveWorkspaceI18nCustomDir(dirPath);
+  if (getWorkspaceI18nCustomDir() !== dirRelativePath) {
+    vscode.window.showInformationMessage(
+      `${EXTENSION_NAME}: i18n directory set to ${dirRelativePath}`
+    );
+  }
 
-  await updateGlobalCustomDirs(dirPath, remote);
+  await updateGlobalCustomDirs(dirRelativePath, remote);
 }
 
 /**
@@ -256,10 +264,10 @@ function saveCustomConfig(config: "local" | "remote"): void {
  * Get the custom configuration
  * @returns - The custom configuration
  */
-export function getCustomConfig(): "local" | "remote" {
+export function getCustomConfig(): "local" | "remote" | "" {
   return vscode.workspace
     .getConfiguration()
-    .get<"local" | "remote">("i18nPeek.customConfig", "local");
+    .get<"local" | "remote" | "">("i18nPeek.customConfig", "");
 }
 
 /**
@@ -272,18 +280,26 @@ async function updateGlobalCustomDirs(
   remote: boolean
 ): Promise<void> {
   const customDirs = getGlobalI18nCustomDir();
+  let lastGlobalConfigUsed: any = {
+    local: null,
+    remote: null,
+  };
   if (remote) {
+    await ensureConfigFileExists();
     const configFilePath = await getRemoteFileConfigPath();
     try {
       const configFile = await readFile(configFilePath, "utf8");
       const configContent = jsonc.parse(configFile);
-      const remoteDirs = customDirs?.remote || {};
+      let remoteDirs = customDirs?.remote || {};
       const projectName = vscode.workspace.name || "project";
+      remoteDirs = typeof remoteDirs === "object" ? remoteDirs : {};
       remoteDirs[projectName] = configContent;
       saveGlobalI18nCustomDir({
         local: customDirs.local,
         remote: remoteDirs,
       });
+      lastGlobalConfigUsed.remote = configContent;
+      savelastGlobalConfigUsed(lastGlobalConfigUsed);
     } catch (error) {
       vscode.window.showErrorMessage(
         `${EXTENSION_NAME}: Error parsing the configuration file.`
@@ -291,11 +307,16 @@ async function updateGlobalCustomDirs(
     }
   } else {
     const setCustomDirs: Set<string> = new Set(customDirs.local);
-    setCustomDirs.add(dirPath);
+    const arrayDirs = Array.from(setCustomDirs);
+    if (!arrayDirs.includes(dirPath)) {
+      arrayDirs.unshift(dirPath);
+    }
     saveGlobalI18nCustomDir({
-      local: Array.from(setCustomDirs),
+      local: arrayDirs,
       remote: customDirs.remote,
     });
+    lastGlobalConfigUsed.local = dirPath;
+    savelastGlobalConfigUsed(lastGlobalConfigUsed);
   }
 }
 
@@ -330,25 +351,31 @@ function saveWorkspaceI18nCustomDir(dir: string): void {
 export function getGlobalI18nCustomDir(): globalCustomDirDTO {
   let globalCustomDir = vscode.workspace
     .getConfiguration()
-    .get<globalCustomDirDTO>("i18nPeek.GlobalCustomDir") || {
-    local: [],
-    remote: "{}",
-  };
+    .get<globalCustomDirDTO>("i18nPeek.GlobalCustomDir", {
+      local: [],
+      remote: {},
+    });
   globalCustomDir = jsonc.parse(JSON.stringify(globalCustomDir));
-  globalCustomDir.remote = globalCustomDir.remote;
+  globalCustomDir.local = Array.isArray(globalCustomDir.local)
+    ? globalCustomDir.local
+    : [];
+  globalCustomDir.remote =
+    typeof globalCustomDir.remote === "object" ? globalCustomDir.remote : {};
   return globalCustomDir;
 }
 
 export function saveGlobalI18nCustomDir(dirs: globalCustomDirDTO): void {
-  const newDirs = {
+  let newDirs = {
     local: dirs.local || [],
-    remote: JSON.stringify(dirs.remote || {}),
+    remote: dirs.remote || {},
   };
+  newDirs.local = Array.isArray(newDirs.local) ? newDirs.local : [];
+  newDirs.remote = typeof newDirs.remote === "object" ? newDirs.remote : {};
   vscode.workspace
     .getConfiguration()
     .update(
       "i18nPeek.GlobalCustomDir",
-      dirs,
+      newDirs,
       vscode.ConfigurationTarget.Global
     );
 }
@@ -357,7 +384,9 @@ export async function removeGlobalI18nCustomDir(): Promise<void> {
   const globalCustomDirs = getGlobalI18nCustomDir();
   const remoteKeys = Object.keys(globalCustomDirs?.remote);
   if (globalCustomDirs?.local?.length === 0 && remoteKeys?.length === 0) {
-    vscode.window.showErrorMessage("No global directories found.");
+    vscode.window.showErrorMessage(
+      `${EXTENSION_NAME}: No global directories found.`
+    );
     return;
   }
 
@@ -398,7 +427,10 @@ async function removeRemoteCustomDirs(
     );
   }
 }
-
+/**
+ * Remove the local custom directories
+ * @param dirs - Custom directories
+ */
 async function removeLocalCustomDirs(dirs: string[]): Promise<void> {
   const SelectedDirs = await vscode.window.showQuickPick(dirs, {
     placeHolder: "Select the directories",
@@ -425,7 +457,10 @@ async function removeLocalCustomDirs(dirs: string[]): Promise<void> {
 export async function remoteI18nDirStartup() {
   const configFilePath = await getRemoteFileConfigPath();
   if (fs.existsSync(configFilePath)) {
+    saveCustomConfig("remote");
     await setRemoteCustomI18nDir();
+  } else {
+    saveCustomConfig("local");
   }
 }
 
@@ -433,20 +468,34 @@ export async function remoteI18nDirStartup() {
  * Check if the custom i18n directory path is set
  */
 export async function i18nDirStartup() {
-  const i18nDirConfig = vscode.workspace
+  let i18nDirConfig = vscode.workspace
     .getConfiguration()
-    .get<string>("i18nPeek.WorkspaceCustomDir", "src/assets/i18n");
-  const customConfig = getCustomConfig();
-  console.log(customConfig, i18nDirConfig);
+    .get<string>("i18nPeek.WorkspaceCustomDir", "");
+  let customConfig = getCustomConfig();
+  if (!customConfig) {
+    customConfig = fs.existsSync(path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE))
+      ? "remote"
+      : "local";
+
+    saveCustomConfig(customConfig);
+  }
+
   if (i18nDirConfig) {
+    i18nDirConfig = validateI18nDirToRelative(i18nDirConfig);
     if (customConfig === "local") {
       setI18nDir(i18nDirConfig);
     } else {
       await remoteI18nDirStartup();
     }
+  } else {
+    lastGlobalConfigUsed();
   }
 }
 
+/**
+ * Select the custom i18n directory path
+ * @returns - The custom i18n directory path
+ */
 export async function selectGlobalI18nCustomDir() {
   const value = await vscode.window.showQuickPick(["Local", "Remote"], {
     placeHolder: "Select the type of i18n directory",
@@ -457,23 +506,33 @@ export async function selectGlobalI18nCustomDir() {
   }
 
   const globalDir = getGlobalI18nCustomDir();
+
   if (value === "Local") {
-    const dirs = globalDir.local || [];
+    let dirs = globalDir.local || [];
+    dirs = Array.isArray(dirs) ? dirs : [];
     if (dirs.length === 0) {
-      vscode.window.showErrorMessage("No global directories found.");
+      vscode.window.showErrorMessage(
+        `${EXTENSION_NAME}: No local directories found.`
+      );
       return;
     }
     const dir = await vscode.window.showQuickPick(dirs, {
       placeHolder: "Select the directory",
     });
     if (dir) {
-      await setLocalCustomI18nDir(dir);
+      // convert the relative path to absolute
+      const join = validateI18nDirToAbsolute(dir);
+      await setLocalCustomI18nDir(join);
     }
   } else if (value === "Remote") {
-    const remoteDirs = globalDir.remote || {};
+    let remoteDirs = globalDir?.remote || {};
+    remoteDirs = typeof remoteDirs === "object" ? remoteDirs : {};
+
     const keys = Object.keys(remoteDirs);
     if (keys.length === 0) {
-      vscode.window.showErrorMessage("No global directories found.");
+      vscode.window.showErrorMessage(
+        `${EXTENSION_NAME}: No remote directories found.`
+      );
       return;
     }
     const dir = await vscode.window.showQuickPick(keys, {
@@ -482,8 +541,124 @@ export async function selectGlobalI18nCustomDir() {
     if (dir) {
       const config = remoteDirs[dir];
       const configFilePath = await getRemoteFileConfigPath();
+      await ensureConfigFileExists();
       await writeFile(configFilePath, JSON.stringify(config, null, 2));
       await openConfigFile();
     }
   }
+}
+
+/**
+ * Get the last global configuration used
+ * @returns - The last global configuration used
+ */
+export function getlastGlobalConfigUsed(): LastGlobalCustomDirDTO {
+  let lastGlobalCustomDir = vscode.workspace
+    .getConfiguration()
+    .get<LastGlobalCustomDirDTO>("i18nPeek.lastGlobalCustomDir", {
+      local: null,
+      remote: null,
+    });
+  lastGlobalCustomDir = jsonc.parse(JSON.stringify(lastGlobalCustomDir));
+  lastGlobalCustomDir.local =
+    typeof lastGlobalCustomDir.local === "string"
+      ? lastGlobalCustomDir.local
+      : null;
+  lastGlobalCustomDir.remote =
+    typeof lastGlobalCustomDir.remote === "object"
+      ? lastGlobalCustomDir.remote
+      : null;
+  return lastGlobalCustomDir;
+}
+
+/**
+ * Save the last global configuration used
+ * @param config - The last global configuration used
+ */
+export function savelastGlobalConfigUsed(config: LastGlobalCustomDirDTO): void {
+  let newDirs = {
+    local: config?.local || null,
+    remote: config?.remote || null,
+  };
+  newDirs.local = typeof newDirs.local === "string" ? newDirs.local : null;
+  newDirs.remote = typeof newDirs.remote === "object" ? newDirs.remote : null;
+  vscode.workspace
+    .getConfiguration()
+    .update(
+      "i18nPeek.lastGlobalCustomDir",
+      newDirs,
+      vscode.ConfigurationTarget.Global
+    );
+}
+
+/**
+ * Get the last global configuration used
+ */
+export async function lastGlobalConfigUsed() {
+  try {
+    // Obtiene la última configuración global usada
+    const lastGlobalDir = getlastGlobalConfigUsed();
+
+    // Comprueba si hay una configuración local
+    if (lastGlobalDir?.local) {
+      const workspacePath =
+        vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? "";
+      const absolutePath = path.join(workspacePath, lastGlobalDir.local);
+
+      // Verifica que la ruta local exista antes de configurarla
+      if (fs.existsSync(absolutePath)) {
+        const relativePath = validateI18nDirToRelative(absolutePath);
+        setI18nDir(relativePath);
+      }
+    } else if (
+      lastGlobalDir?.remote &&
+      Object.keys(lastGlobalDir.remote).length
+    ) {
+      // Si no hay configuración local, comprueba la configuración remota
+
+      const remoteDir = jsonc.parse(JSON.stringify(lastGlobalDir.remote));
+      if (Object.prototype.hasOwnProperty.call(remoteDir?.params, "module")) {
+        remoteDir.params.module = getModuleParam();
+      }
+      let configFilePath = path.join(I18N_PEEK_DIR, CONFIG_REMOTE_FILE);
+      // Si no existe el archivo de configuración remoto, lo crea y lo abre
+      if (!fs.existsSync(configFilePath)) {
+        configFilePath = await getRemoteFileConfigPath();
+        await ensureConfigFileExists();
+        await writeFile(configFilePath, JSON.stringify(remoteDir, null, 2));
+      }
+    }
+  } catch (error) {
+    return;
+  }
+}
+
+/**
+ * Validate the i18n directory path to relative
+ * @param dir - i18n directory path
+ * @returns - Relative path
+ */
+export function validateI18nDirToRelative(dir: string): string {
+  const workspaceFolder =
+    vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? "";
+  if (path.isAbsolute(dir)) {
+    const relativePath = path.relative(workspaceFolder, dir);
+    return relativePath;
+  }
+  return dir;
+}
+
+/**
+ * Validate the i18n directory path to absolute
+ * @param dir - i18n directory path
+ * @returns - Absolute path
+ */
+export function validateI18nDirToAbsolute(dir: string): string {
+  const workspaceFolder =
+    vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? "";
+  if (!path.isAbsolute(dir)) {
+    const absolutePath = path.join(workspaceFolder, dir);
+    return absolutePath;
+  }
+  return dir;
 }
