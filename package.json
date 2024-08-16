@@ -2,7 +2,7 @@
   "name": "i18n-peek",
   "displayName": "i18n Peek",
   "description": "A helper for managing i18n files, providing translation previews directly in the editor.",
-  "version": "0.0.5",
+  "version": "0.0.8",
   "publisher": "Rockycott",
   "author": {
     "name": "Rockycott"
@@ -161,18 +161,26 @@
       "properties": {
         "i18nPeek.WorkspaceCustomDir": {
           "type": "string",
-          "default": "src/assets/i18n",
+          "default": "",
           "description": "Custom directory for i18n files"
         },
         "i18nPeek.GlobalCustomDir": {
-          "type": "string",
-          "default": "src/assets/i18n",
+          "type": "object",
+          "default": {
+            "local": [],
+            "remote": {}
+          },
           "description": "Global custom directories for i18n files"
         },
         "i18nPeek.customConfig": {
           "type": "string",
-          "default": "local",
+          "default": "",
           "description": "Custom config for project"
+        },
+        "i18nPeek.lastGlobalCustomDir": {
+          "type": "object",
+          "default": {},
+          "description": "Last selected global custom directory"
         }
       }
     }

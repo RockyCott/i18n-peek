@@ -1,7 +1,17 @@
 # Changelog
 
 ## [Unreleased]
-- Placeholder for changes in the next release.
+### Planned
+- Add the possibility to use the i18n loader provided by each app so that the extension can fetch data directly from there.
+
+### Added
+- **Relative Paths for Custom Directories**: Updated the extension to save custom directory paths as relative paths from the project root. This change allows for easier sharing of settings across different team members without path conflicts.
+- **Compatibility with Transloco**: Although the extension primarily reads the i18n paths directly and is agnostic to specific Angular pipes like `| translate` or `| transloco`, it has been confirmed to work with Transloco due to its underlying design.
+
+
+## [0.0.6] - 2024-06-20
+### Fixed
+- Corrected the initialization process to properly set the custom configuration. Now, if no configuration is set, it checks for the existence of the remote configuration file and sets the customConfig accordingly. If no remote configuration file is found, it defaults to local.
 
 ## [0.0.5] - 2024-06-19
 ### Added

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { getWorkspaceI18nCustomDir } from "./i18nDirManager";
+import { getWorkspaceI18nCustomDir, validateI18nDirToAbsolute } from "./i18nDirManager";
 import { flatten } from "./json-util";
 import { normalizeText } from "./text-util";
 import { I18N_PEEK_DIR, ensureI18nPeekDirExists } from "./i18nRemoteConfig";
@@ -22,8 +22,8 @@ export async function searchText() {
     if (!inputText) {
       return;
     }
-
-    const results = await search(inputText);
+    const editText = normalizeText(inputText, false, "lower");
+    const results = await search(editText);
 
     if (!results) {
       vscode.window.showInformationMessage(
@@ -52,18 +52,27 @@ export async function searchText() {
  * Function to search a value in the i18n files
  * @param text - Value to search
  */
-async function search(text: string): Promise<any | null> {
+async function search(text: string): Promise<any> {
   if (!text) {
     return null;
   }
 
   let finalResults: any = {};
   const i18nDir = getWorkspaceI18nCustomDir();
+  // Check if the i18n directory exists
+  if (!fs.existsSync(i18nDir)) {
+    vscode.window.showErrorMessage(
+      `${EXTENSION_NAME}: i18n directory not found.`
+    );
+    return null;
+  }
+
+  const i18nAbsoluteDir = validateI18nDirToAbsolute(i18nDir);
   const files = fs
-    .readdirSync(i18nDir)
+    .readdirSync(i18nAbsoluteDir)
     .filter((file) => file.endsWith(".json"));
   for (const file of files) {
-    const filePath = path.join(i18nDir, file);
+    const filePath = path.join(i18nAbsoluteDir, file);
     const jsonContent = fs.readFileSync(filePath, "utf8");
     const jsonData = JSON.parse(jsonContent);
     const flattenedJson = flatten(jsonData);
