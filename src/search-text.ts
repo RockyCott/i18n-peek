@@ -59,15 +59,15 @@ async function search(text: string): Promise<any> {
 
   let finalResults: any = {};
   const i18nDir = getWorkspaceI18nCustomDir();
+  const i18nAbsoluteDir = validateI18nDirToAbsolute(i18nDir);
   // Check if the i18n directory exists
-  if (!fs.existsSync(i18nDir)) {
+  if (!fs.existsSync(i18nAbsoluteDir)) {
     vscode.window.showErrorMessage(
       `${EXTENSION_NAME}: i18n directory not found.`
     );
     return null;
   }
 
-  const i18nAbsoluteDir = validateI18nDirToAbsolute(i18nDir);
   const files = fs
     .readdirSync(i18nAbsoluteDir)
     .filter((file) => file.endsWith(".json"));
