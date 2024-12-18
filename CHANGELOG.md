@@ -8,6 +8,9 @@
 - **Relative Paths for Custom Directories**: Updated the extension to save custom directory paths as relative paths from the project root. This change allows for easier sharing of settings across different team members without path conflicts.
 - **Compatibility with Transloco**: Although the extension primarily reads the i18n paths directly and is agnostic to specific Angular pipes like `| translate` or `| transloco`, it has been confirmed to work with Transloco due to its underlying design.
 
+## [0.0.9] - 2024-12-17
+### Fixed
+Resolved an issue where the function incorrectly handled absolute paths instead of relative paths when reading file paths.
 
 ## [0.0.6] - 2024-06-20
 ### Fixed

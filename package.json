@@ -2,7 +2,7 @@
   "name": "i18n-peek",
   "displayName": "i18n Peek",
   "description": "A helper for managing i18n files, providing translation previews directly in the editor.",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "Rockycott",
   "author": {
     "name": "Rockycott"
@@ -149,11 +149,11 @@
     "submenus": [
       {
         "id": "i18nPeek.editor.submenu",
-        "label": "I18n Peek"
+        "label": "I18n Peek 🌐"
       },
       {
         "id": "i18nPeek.explorer.submenu",
-        "label": "I18n Peek"
+        "label": "I18n Peek 🌐"
       }
     ],
     "snippets": [],
